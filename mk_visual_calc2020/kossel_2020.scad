@@ -7,38 +7,46 @@ explode = 0.0;   // set > 0.0 to push the parts apar1t
 
 delta_min_angle = 21; // the minimul angle of the diagonal rod as full extension while still being on the print surface  
 
-frame_motor_h = 50;  //heaight of motor fram vertex
+frame_motor_h = 60;  //heaight of motor fram vertex
 frame_top_h = 20;
  
-frame_extrusion_l = 342.9; //length of extrusions for horizontals, need cut length
-frame_extrusion_h = 857.4375; //length of extrusions for towers, need cut length
+frame_extrusion_l = 353; //length of extrusions for horizontals, need cut length
+frame_extrusion_h = 920; //length of extrusions for towers, need cut length
 frame_extrusion_w = 20;
 frame_depth = frame_extrusion_w/2; // used when calculating offsets
 
-vertex_x_offset = 7.25; // offset of the horizontal extrusion to the vertical one in X axis
-vertex_y_offset = 39 ;//27; // offset of the horizontal extrusion to the vertical one in Y axis
+// Offsets from a virtual point connecting axles of the two horizontal beams...
+// ...to the vertical beam axle
+vertex_v_beam_offset = 14.12; //+10/sin(30);
+// ...to the horizontal beam butt-end
+vertex_h_beam_offset = 30.51; //+10/tan(30);
+
 frame_wall_thickness = 3.6;
-frame_r = ((frame_extrusion_l + vertex_y_offset)/2) / sin60; // need the distance from the center of the vertical beam to the center of the machine
+// need the distance from the center of the vertical beam to the center of the machine
+//frame_r = (frame_extrusion_l/2+vertex_h_beam_offset)/sin60-vertex_v_beam_offset;
+frame_r = (frame_extrusion_l/2+vertex_h_beam_offset)/cos(30)-vertex_v_beam_offset;
 //cos(60) = Adjacent/hypotenuse so hypotenuse = adjacent/cos(60)
 frame_size = frame_r  + explode;//151.5 + explode;
-frame_offset = (frame_r * cos60) + frame_extrusion_w - vertex_x_offset/2 + explode;//92 + explode;    
+//frame_offset = (frame_r * cos60) + frame_extrusion_w - vertex_x_offset/2 + explode;//92 + explode;    
+frame_offset = (frame_r + vertex_v_beam_offset) * sin(30) + frame_extrusion_w/2;
 // distance to move a centered extrusion from center of build area to where it needs to be in relation to verticies
-frame_top = frame_extrusion_h - 25 + explode; 
+frame_top = frame_extrusion_h - frame_extrusion_w + explode; 
 // I use 30mm based on my own printer. This could vary on how you set up your tensioning/belt length and may allow you to regain soem lost Z if you need it.
 
 effector_h = 8; //height of effector so we can get it centered. From effector.scad
-effector_offset = 20; // horizontal distance from center to pivot from effector.scad
-rod_separation = 20; // Distance from one rod to it's parallel
+effector_offset = 28; // horizontal distance from center to pivot from effector.scad
+rod_separation = 22.5; // Distance from one rod to it's parallel
 
 //rail_depth= 17.55 - 7.5;   // 17.55 from the tower_slides.scad file
 //rail_depth = 25; // the further the carriage is from the slider, the shorter the diagonal rod and we regain max z
 //truck_depth=0; // no trucks for printed slides
 
-rail_length = 400;
+rail_length = 650;
 rail_r_offset = frame_depth + explode; 
 rail_depth = 8 + explode;    // mgn12 rail is 8mm high
 truck_depth = 5 + explode;   // mgn12H/C rail is 5mm high
-rail_z_offset = 112;         // distance from top of motor frame to bottom of rail
+//rail_z_offset = 112;         // distance from top of motor frame to bottom of rail
+
 
 endstop_h = 15;              // from endstop.scad
 endstop_depth = 7;     // from endstop.scad
@@ -85,34 +93,29 @@ effector_z = calc_slider_z; // need to know where to draw the effector
 
 plate_d = surface_r * 2;
 plate_thickness = 3;
-glass_tab_thickness = 4;
+glass_tab_thickness = 15;
 plate_z = plate_thickness/2 + frame_motor_h +glass_tab_thickness;// + plate_thickness; //not added yet, but there will be glass tabes (5mm) and the plate thickness is 3)
 
 calc_carriage_z = frame_top - endstop_h - carriage_length;
 //echo (calc_carriage_z);
-hotend_l = 45;
+hotend_l = 30;
 calc_max_z = calc_carriage_z - ( plate_z + hotend_l + delta_vert_l);
+
+rail_z_offset = glass_tab_thickness+plate_thickness/2+hotend_l+DELTA_DIAGONAL_ROD*sin(delta_min_angle)-carriage_pivot_offset;
+echo(str("Rail Z offset: ", rail_z_offset, "mm"));
+
 echo("Max Build Height:",calc_max_z,"mm assuming a narrow tower or cone shaped build.");
 
 
-$fn=60;
+$fn=32;
+
 //Horizontal t-slot
-//X-Y
-translate([-frame_extrusion_l/2,-frame_offset,frame_extrusion_w/2-explode])rotate([0,90,0]) color(t_slot_color) extrusion_20(frame_extrusion_l);
-translate([-frame_extrusion_l/2,-frame_offset,frame_motor_h-frame_extrusion_w/2-explode])rotate([0,90,0]) color(t_slot_color)extrusion_20(frame_extrusion_l);
-
-//Y-Z
-rotate([0,0,120]){
-translate([-frame_extrusion_l/2,-frame_offset,frame_extrusion_w/2-explode])rotate([0,90,0]) color(t_slot_color)extrusion_20(frame_extrusion_l);
-translate([-frame_extrusion_l/2,-frame_offset,frame_motor_h-frame_extrusion_w/2-explode])rotate([0,90,0]) color(t_slot_color)extrusion_20(frame_extrusion_l);
+for (al = [0:120:360-1]) {
+    rotate(al) {
+        translate([-frame_extrusion_l/2,-frame_offset,frame_extrusion_w/2-explode])rotate([0,90,0]) color(t_slot_color) extrusion_20(frame_extrusion_l);
+        translate([-frame_extrusion_l/2,-frame_offset,frame_motor_h-frame_extrusion_w/2-explode])rotate([0,90,0]) color(t_slot_color)extrusion_20(frame_extrusion_l);
+    }
 }
-
-//X-Z
-rotate([0,0,-120]){
-translate([-frame_extrusion_l/2,-frame_offset,frame_extrusion_w/2-explode]) rotate([0,90,0])color(t_slot_color)extrusion_20(frame_extrusion_l);
-translate([-frame_extrusion_l/2,-frame_offset,frame_motor_h-frame_extrusion_w/2-explode]) rotate([0,90,0])color(t_slot_color)extrusion_20(frame_extrusion_l);
-}
-
 
 //motor_frame
 translate([-(sin60*frame_size),-(cos60*frame_size),0-explode]) rotate([0,0,-60])color(frame_color)import("frame_motor.stl"); //x-tower
@@ -138,12 +141,13 @@ rotate([0,0,120])translate([-frame_extrusion_l/2,-frame_offset,frame_extrusion_w
 rotate([0,0,-120])translate([-frame_extrusion_l/2,-frame_offset,frame_extrusion_w/2 + frame_top]) rotate([0,90,0])color(t_slot_color)extrusion_20(frame_extrusion_l); //X-Z
 
 
-//slides
+/*//slides
 translate([-(sin60*(frame_size)),-(cos60*(frame_size)),calc_carriage_z])rotate([0,0,-60])color(frame_color)import("tower_slides.stl");
 translate([(sin60*(frame_size)),-(cos60*(frame_size)),calc_carriage_z])rotate([0,0,60])color(frame_color)import("tower_slides.stl");
 translate([0,frame_size,calc_carriage_z])rotate([0,0,180])color(frame_color)import("tower_slides.stl");
+*/
 
-/*//rails
+//rails
 translate([-(sin60*(frame_size-rail_r_offset)),-(cos60*(frame_size-rail_r_offset)),calc_carriage_z+carriage_length-rail_length]) rotate([0,0,-60])color(rail_color) rail(rail_length);//import("rail_400mm.stl"); //x-tower rail
 translate([(sin60*(frame_size-rail_r_offset)),-(cos60*(frame_size-rail_r_offset)),calc_carriage_z+carriage_length-rail_length]) rotate([0,0,60])color(rail_color) rail(rail_length);//import("rail_400mm.stl"); //y-tower rail
 translate([0,frame_size-rail_r_offset,calc_carriage_z+carriage_length-rail_length]) rotate([0,0,180])color(rail_color)rail(rail_length);//import("rail_400mm.stl"); //z-tower rail
@@ -151,7 +155,6 @@ translate([0,frame_size-rail_r_offset,calc_carriage_z+carriage_length-rail_lengt
 translate([-(sin60*(frame_size-rail_r_offset-explode)),-(cos60*(frame_size-rail_r_offset-explode)),calc_carriage_z-6.5]) rotate([0,0,-60])color("green")import("mgn12c.stl"); //z-tower truck
 translate([(sin60*(frame_size-rail_r_offset-explode)),-(cos60*(frame_size-rail_r_offset-explode)),calc_carriage_z-6.5]) rotate([0,0,60])color("green")import("mgn12c.stl"); //z-tower truck
 translate([0-explode,frame_size-rail_r_offset-explode,calc_carriage_z-6.5]) rotate([0,0,180])color("green")import("mgn12c.stl"); //z-tower truck
-*/
 
 
 //Carriages
@@ -178,14 +181,17 @@ translate([0,0,frame_motor_h + effector_h + effector_z - explode*2]) rotate([0,1
 translate([0,0,frame_motor_h + effector_h + effector_z -hotend_l/2 - explode*2]) color(t_slot_color) cylinder(h=hotend_l,r=10,center=true);
 
 // Build plate
-translate([0,0,plate_z+explode])color(plate_color)cylinder(h=plate_thickness,r=plate_d/2,center=true,$fn=120);
+translate([0,0,plate_z+explode])
+    bed();
+
+/*translate([0,0,plate_z+explode])color(plate_color)cylinder(h=plate_thickness,r=plate_d/2,center=true,$fn=120);
 // Glass tabs
 for(i=[0:2]) {
  rotate(i*120){
   translate([0,-frame_offset,frame_motor_h+explode/4]) rotate([0,180,0]) color(frame_color)import("glass_tab.stl"); //X-Z
   //translate([0,-frame_offset,frame_motor_h+7.5+3+explode*2]) rotate([0,180,-30]) translate([2,-2,0])color(frame_color)import("Spiral_Bed_Clamp.stl"); // needed to translate the clamp so the hole was centered.
  }
-}
+}*/
 
 //Diagonal Rods
 for(i=[0:2]) {
@@ -224,4 +230,43 @@ module extrusion_20(len=240){
     translate([-12,-12,len])cube([24,24,(1000-len)+2]);
   }
 
+}
+
+module bed()
+{
+    bed_d = 265;
+    ear_w = 100;
+    ear_h = 5;
+    ear_hole_shift_w = 7;
+    ear_hole_shift_h = 8;
+    
+    screw_d = 3.2;
+
+    // Build area
+    translate([0,0,plate_thickness/2])
+        color("red",0.5)
+            cylinder(r=surface_r,h=0.01,$fn=128);
+
+    color(plate_color)
+    linear_extrude(height=plate_thickness,center=true) {
+        difference() {
+            union() {
+                circle(d=bed_d,$fn=128);
+                for (a = [0:120:360-1]) {
+                    rotate(a+180)
+                        translate([-ear_w/2,0])
+                            square([ear_w,bed_d/2+ear_h]);
+                }
+            }
+    
+            for (a = [0:120:360-1]) {
+                for (m = [0,1]) {
+                    rotate(a+180)
+                        mirror([m,0,0])
+                            translate([ear_w/2-ear_hole_shift_w,bed_d/2+ear_h-ear_hole_shift_h])
+                                circle(d=screw_d);
+                }
+            }
+        }
+    }
 }
